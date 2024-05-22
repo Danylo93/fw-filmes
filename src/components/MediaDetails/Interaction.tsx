@@ -76,7 +76,7 @@ const Interaction = ({
   return (
     <div className="flex items-center gap-x-4">
       {trailerUrl ? (
-        <Tooltip title="Watch trailer">
+        <Tooltip title="Ver Trailer">
           <button
             onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center justify-center rounded-full p-2 ring-1 ring-white/70 transition hover:ring-2 hover:ring-movieViolet"
@@ -99,10 +99,10 @@ const Interaction = ({
       <Tooltip
         title={
           !session
-            ? "Login to add this media to your favorites"
+            ? "Você precisa estar logado para adicionar aos favoritos"
             : isInFavorites
-            ? "Remove from favorites"
-            : "Add to favorites"
+            ? "Remover dos favoritos"
+            : "Adicionar aos Favoritos"
         }
       >
         <button
@@ -138,10 +138,10 @@ const Interaction = ({
       <Tooltip
         title={
           !session
-            ? "Login to add this media to your watchlist"
+            ? "Você precisa estar logado para adicionar lista de pretendo assistir"
             : isInWatchlist
-            ? "Remove from watchlist"
-            : "Add to watchlist"
+            ? "Remove da lista de pretendo assistir"
+            : "Adicionar a lista de pretendo assistir"
         }
       >
         <button

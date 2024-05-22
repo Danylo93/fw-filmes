@@ -12,7 +12,7 @@ import { MediaType } from "@/types/general";
 import { NextSeo } from "next-seo";
 
 const Profile = () => {
-  const tabs = ["Assistir Depois", "Favoritos"];
+  const tabs = ["Pretendo Assistir", "Favoritos"];
   const [activeTab, setActiveTab] = React.useState(tabs[0]);
 
   const { data: session, status } = useSession({
@@ -43,47 +43,47 @@ const Profile = () => {
   const isFavoritesLoading =
     activeTab === tabs[1] && !favorites && !favoritesError;
 
-    const optimisticRemoveItem = async (
-      itemType: "favorites" | "watchlist",
-      mediaType: MediaType,
-      mediaId: number
-    ) => {
-      const data = itemType === "favorites" ? favorites! : watchlist!;
-    
-      const optimisticData = {
-        ...data,
-        results: data.results.filter(
-          (item) => !(item.id === mediaId && item.mediaType === mediaType)
-        ),
-      };
-    
-      const mutate = itemType === "favorites" ? mutateFavorites : mutateWatchlist;
-      const request = async () => {
-        const response = await fetch(`/api/${itemType}`, {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ mediaType, mediaId }),
-          credentials: "include",
-        });
-    
-        return response.ok ? optimisticData : data;
-      };
-    
-      try {
-        await mutate(request(), {
-          optimisticData,
-          rollbackOnError: true,
-          populateCache: true,
-          revalidate: false,
-        });
-      } catch (e) {
-        console.log(e);
-      }
-    };
-    
+  const optimisticRemoveItem = async (
+    itemType: "favorites" | "watchlist",
+    mediaType: MediaType,
+    mediaId: number
+  ) => {
+    const data = itemType === "favorites" ? favorites! : watchlist!;
 
+    const optimisticData = {
+      ...data,
+      results: data.results.filter(
+        (item) => !(item.id === mediaId && item.mediaType === mediaType)
+      ),
+    };
+
+    const mutate = itemType === "favorites" ? mutateFavorites : mutateWatchlist;
+    const request = async () => {
+      const response = await fetch(`/api/${itemType}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mediaType, mediaId }),
+      });
+
+      return response.ok ? optimisticData : data;
+    };
+
+    try {
+      await mutate(request(), {
+        optimisticData,
+        rollbackOnError: true,
+        populateCache: true,
+        revalidate: false,
+      });
+    } catch (e) {
+      // fail
+      console.log(e);
+    }
+  };
+
+  // When rendering client side don't display anything until loading is complete
   if (status === "loading") return null;
 
   return (
@@ -94,7 +94,7 @@ const Profile = () => {
         <div className="px-2">
           <h1 className="text-3xl md:text-4xl">Perfil</h1>
           <div className="mt-2 text-lg md:text-2xl">
-            Bem Vindo de volta,&nbsp;
+            Bem vindo de volta,&nbsp;
             <span className="font-bold">{session.user!.name}</span>
           </div>
         </div>
@@ -130,14 +130,11 @@ const Profile = () => {
                       key={idx}
                       className={cn("rounded-xl bg-movidark p-3 md:p-5")}
                     >
-                      {((tab === tabs[0] ? watchlist : favorites)?.results ?? []).length === 0 ? (
-  <span>Você não tem filmes em {tab}.</span>
-) : (
+                      {((tab === tabs[0] ? watchlist : favorites)?.results?.length ?? 0) === 0 ? (
+                        <span>Você não tem vídeos em {tab}.</span>
+                      ) : (
                         <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
-                          {(tab === tabs[0]
-                            ? watchlist
-                            : favorites
-                          )?.results.map((item) => (
+                          {(tab === tabs[0] ? watchlist : favorites)?.results?.map((item) => (
                             <div key={item.id} className="group relative">
                               <SingleItem item={item} />
 

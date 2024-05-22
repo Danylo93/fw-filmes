@@ -2,11 +2,11 @@ const Footer = () => {
   return (
     <footer className="container mx-auto mt-auto flex flex-col items-center justify-center p-4 backdrop-blur-[2px]">
       <a
-        title="Danylo Oliveira"
+        title="FW Filmes"
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-x-2 hover:opacity-70"
-        href="https://github.com/Danylo93"
+        href="https://github.com/Danylo93/fw-filmes"
       >
         <div className="inline-block">
           <svg
@@ -20,7 +20,7 @@ const Footer = () => {
           <span className="sr-only">github</span>
         </div>
 
-        <span className="text-sm font-semibold">Danylo Oliveira</span>
+        <span className="text-sm font-semibold">FW Filmes</span>
       </a>
     </footer>
   );

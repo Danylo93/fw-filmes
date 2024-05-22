@@ -14,24 +14,28 @@ datasource db {
 }
 
 model User {
-  id        Int         @id @default(autoincrement())
-  email     String      @unique
-  favorites Favorite[]
-  watchlist Watchlist[]
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  favorites Media[]   @relation("UserFavorites")
+  watchlist Media[]   @relation("UserWatchlist")
+  sessions  Session[]
 }
 
-model Favorite {
-  id        Int    @id @default(autoincrement())
-  userId    Int
-  user      User   @relation(fields: [userId], references: [id])
-  mediaId   Int
-  mediaType String
+model Media {
+  id             Int    @id @default(autoincrement())
+  tmdbId         Int    @unique
+  title          String
+  mediaType      String
+  posterImageUrl String
+  year           Int
+
+  usersFavorites User[] @relation("UserFavorites")
+  usersWatchlist User[] @relation("UserWatchlist")
 }
 
-model Watchlist {
-  id        Int    @id @default(autoincrement())
-  userId    Int
-  user      User   @relation(fields: [userId], references: [id])
-  mediaId   Int
-  mediaType String
+model Session {
+  id      Int      @id @default(autoincrement())
+  userId  Int
+  expires DateTime
+  user    User     @relation(fields: [userId], references: [id])
 }
