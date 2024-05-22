@@ -18,7 +18,7 @@ const Profile = () => {
   const { data: session, status } = useSession({
     required: true,
     onUnauthenticated() {
-      signIn("");
+      signIn("google");
     },
   });
 
@@ -64,7 +64,7 @@ const Profile = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ mediaType, mediaId }), // Passa mediaType e mediaId no corpo da requisição
+          body: JSON.stringify({ mediaType, mediaId }),
           credentials: "include",
         });
     
