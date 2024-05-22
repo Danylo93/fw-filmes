@@ -1,37 +1,50 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { getSession } from 'next-auth/react';
-import prisma from '@/lib/prisma';
+// pages/api/watchlist.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { getSession } from "next-auth/react";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getSession({ req });
 
   if (!session || !session.user || !session.user.email) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
-  const { mediaId, mediaType } = req.body;
+  const { mediaType, mediaId } = req.body;
 
-  if (req.method === 'PUT') {
+  if (!mediaType || !mediaId) {
+    return res.status(400).json({ message: "Bad request" });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: session.user.email },
+  });
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found." });
+  }
+
+  if (req.method === "PUT") {
     await prisma.watchlist.create({
       data: {
-        user: { connect: { email: session.user.email } },
+        userId: user.id,
         mediaId,
         mediaType,
       },
     });
-    return res.status(201).json({ message: 'Added to watchlist' });
-  }
-
-  if (req.method === 'DELETE') {
+    return res.status(201).json({ message: "Added to watchlist" });
+  } else if (req.method === "DELETE") {
     await prisma.watchlist.deleteMany({
       where: {
-        user: { email: session.user.email },
+        userId: user.id,
         mediaId,
         mediaType,
       },
     });
-    return res.status(200).json({ message: 'Removed from watchlist' });
+    return res.status(200).json({ message: "Removed from watchlist" });
+  } else {
+    return res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
-
-  return res.status(405).json({ message: 'Method not allowed' });
 }

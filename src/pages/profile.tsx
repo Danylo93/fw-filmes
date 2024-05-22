@@ -12,7 +12,7 @@ import { MediaType } from "@/types/general";
 import { NextSeo } from "next-seo";
 
 const Profile = () => {
-  const tabs = ["watchlist", "favorites"];
+  const tabs = ["Assistir Depois", "Favoritos"];
   const [activeTab, setActiveTab] = React.useState(tabs[0]);
 
   const { data: session, status } = useSession({
@@ -43,47 +43,47 @@ const Profile = () => {
   const isFavoritesLoading =
     activeTab === tabs[1] && !favorites && !favoritesError;
 
-  const optimisticRemoveItem = async (
-    itemType: "favorites" | "watchlist",
-    mediaType: MediaType,
-    mediaId: number
-  ) => {
-    const data = itemType === "favorites" ? favorites! : watchlist!;
-
-    const optimisticData = {
-      ...data,
-      results: data.results.filter(
-        (item) => !(item.id === mediaId && item.mediaType === mediaType)
-      ),
+    const optimisticRemoveItem = async (
+      itemType: "favorites" | "watchlist",
+      mediaType: MediaType,
+      mediaId: number
+    ) => {
+      const data = itemType === "favorites" ? favorites! : watchlist!;
+    
+      const optimisticData = {
+        ...data,
+        results: data.results.filter(
+          (item) => !(item.id === mediaId && item.mediaType === mediaType)
+        ),
+      };
+    
+      const mutate = itemType === "favorites" ? mutateFavorites : mutateWatchlist;
+      const request = async () => {
+        const response = await fetch(`/api/${itemType}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ mediaType, mediaId }), // Passa mediaType e mediaId no corpo da requisição
+          credentials: "include",
+        });
+    
+        return response.ok ? optimisticData : data;
+      };
+    
+      try {
+        await mutate(request(), {
+          optimisticData,
+          rollbackOnError: true,
+          populateCache: true,
+          revalidate: false,
+        });
+      } catch (e) {
+        console.log(e);
+      }
     };
+    
 
-    const mutate = itemType === "favorites" ? mutateFavorites : mutateWatchlist;
-    const request = async () => {
-      const response = await fetch(`/api/${itemType}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ mediaType, mediaId }),
-      });
-
-      return response.ok ? optimisticData : data;
-    };
-
-    try {
-      await mutate(request(), {
-        optimisticData,
-        rollbackOnError: true,
-        populateCache: true,
-        revalidate: false,
-      });
-    } catch (e) {
-      // fail
-      console.log(e);
-    }
-  };
-
-  // When rendering client side don't display anything until loading is complete
   if (status === "loading") return null;
 
   return (
@@ -107,9 +107,9 @@ const Profile = () => {
                   key={tab}
                   className={({ selected }) =>
                     cn(
-                      "w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-moviyellow focus:outline-none focus:ring-2",
+                      "w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-movieViolet focus:outline-none focus:ring-2",
                       {
-                        "bg-movidark text-moviyellow shadow": selected,
+                        "bg-movidark text-movieViolet shadow": selected,
                         "text-white/70 hover:bg-white/[0.12] hover:text-white":
                           !selected,
                       }
@@ -130,10 +130,9 @@ const Profile = () => {
                       key={idx}
                       className={cn("rounded-xl bg-movidark p-3 md:p-5")}
                     >
-                      {((tab === tabs[0] ? watchlist : favorites)?.results
-                        .length ?? 0) === 0 ? (
-                        <span>You have no media in your {tab}.</span>
-                      ) : (
+                      {((tab === tabs[0] ? watchlist : favorites)?.results ?? []).length === 0 ? (
+  <span>Você não tem filmes em {tab}.</span>
+) : (
                         <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
                           {(tab === tabs[0]
                             ? watchlist
@@ -168,7 +167,7 @@ const Profile = () => {
                                         }
                                         className="w-full px-4 py-3 text-start text-xs font-semibold text-white/70 hover:bg-white/20 hover:text-white"
                                       >
-                                        Remove from {tab}
+                                        Remover de {tab}
                                       </button>
                                     </Menu.Item>
                                   </Menu.Items>

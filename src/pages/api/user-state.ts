@@ -1,23 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { unstable_getServerSession } from "next-auth/next";
-import { authOptions } from "./auth/[...nextauth]";
-import { doc, collection, getDoc } from "firebase/firestore";
-import { db } from "@/app/firebase";
+import { getSession } from "next-auth/react";
+import { PrismaClient } from "@prisma/client";
 import { MediaType, UserStateCollection } from "@/types/general";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const session = await unstable_getServerSession(req, res, authOptions);
+const prisma = new PrismaClient();
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const session = await getSession({ req });
 
   if (!session) {
     res.status(401).json({ message: "You must be logged in." });
     return;
   }
 
-  const mediaId = Number(req?.query?.mediaId ?? 0);
-  const mediaType = req?.query?.mediaType as `${MediaType}` | undefined;
+  const mediaId = Number(req.query.mediaId ?? 0);
+  const mediaType = req.query.mediaType as `${MediaType}` | undefined;
 
   if (
     isNaN(mediaId) ||
@@ -29,41 +26,51 @@ export default async function handler(
     return;
   }
 
-  const userDocRef = doc(db, "users", session.user.id);
-  const favoritesCollectionRef = collection(
-    userDocRef,
-    UserStateCollection.Favorites
-  );
-  const watchlistCollectionRef = collection(
-    userDocRef,
-    UserStateCollection.Watchlist
-  );
+  const userEmail = session.user.email;
 
-  // media can be same id in TMDB API depending media type
-  const favoritesMediaDocRef = doc(
-    favoritesCollectionRef,
-    `${mediaType}-${mediaId}`
-  );
+  if (!userEmail) {
+    res.status(400).json({ message: "User email not found in session." });
+    return;
+  }
 
-  const watchlistMediaDocRef = doc(
-    watchlistCollectionRef,
-    `${mediaType}-${mediaId}`
-  );
+  const user = await prisma.user.findUnique({
+    where: {
+      email: userEmail,
+    },
+  });
+
+  if (!user) {
+    res.status(404).json({ message: "User not found." });
+    return;
+  }
 
   if (req.method === "GET") {
-    const isInFavorites = (await getDoc(favoritesMediaDocRef)).exists();
-    const isInWatchlist = (await getDoc(watchlistMediaDocRef)).exists();
+    const favorite = await prisma.favorite.findFirst({
+      where: {
+        userId: user.id,
+        mediaId,
+        mediaType,
+      },
+    });
+
+    const watchlist = await prisma.watchlist.findFirst({
+      where: {
+        userId: user.id,
+        mediaId,
+        mediaType,
+      },
+    });
 
     res.status(200).json({
       mediaId,
       mediaType,
-      isInFavorites,
-      isInWatchlist,
+      isInFavorites: !!favorite,
+      isInWatchlist: !!watchlist,
     });
   } else {
     console.error(
       `Unsupported method type ${req.method} made to endpoint ${req.url}`
     );
-    res.status(404).end();
+    res.status(405).json({ message: `Method ${req.method} not allowed` });
   }
 }
