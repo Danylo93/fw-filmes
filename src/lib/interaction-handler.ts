@@ -1,14 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
-import { MediaType } from "@/types/general";
-import { parseMediaDetailsData } from "@/lib/media-parser";
+
+import {
+  doc,
+  setDoc,
+  collection,
+  deleteDoc,
+  getDocs,
+} from "firebase/firestore";
+import { db } from "@/app/firebase";
 import * as TMDB from "@/lib/tmdb";
+import { MediaType, UserStateCollection } from "@/types/general";
 import { pick } from "@/utils/util";
+import { getPath, parseMediaDetailsData } from "@/lib/media-parser";
 import { Session } from "next-auth";
-
-const prisma = new PrismaClient();
-
-type UserStateCollection = "favorites" | "watchlist";
 
 const handler = async (
   req: NextApiRequest,
@@ -21,21 +25,17 @@ const handler = async (
     return;
   }
 
-  const userId = session.user.id;
+  const userDocRef = doc(db, "users", session.user.id);
+  const collectionRef = collection(userDocRef, userStateCollection);
 
   switch (req.method) {
     case "GET": {
-      try {
-        const userState = await prisma[userStateCollection].findMany({
-          where: {
-            userId,
-          },
-        });
-        res.status(200).json({ results: userState });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Internal server error" });
-      }
+      const querySnapshot = await getDocs(collectionRef);
+      const collectionData = querySnapshot.docs.map((doc) => doc.data());
+
+      res.status(200).json({
+        results: collectionData,
+      });
       break;
     }
 
@@ -54,53 +54,52 @@ const handler = async (
         return;
       }
 
-      try {
-        if (req.method === "DELETE") {
-          await prisma[userStateCollection].deleteMany({
-            where: {
-              userId,
-              mediaId,
-              mediaType,
-            },
-          });
+      // media can be same id in TMDB API depending media type
+      const mediaDocRef = doc(collectionRef, `${mediaType}-${mediaId}`);
+
+      if (req.method === "DELETE") {
+        try {
+          await deleteDoc(mediaDocRef);
           res.status(204).end();
-        } else {
-          // PUT
+        } catch (err) {
+          console.error(err);
+          res.status(500).json({
+            message: `There was an error deleting the media from ${userStateCollection}`,
+          });
+        }
+      } else {
+        // PUT
+
+        // unfortunately, TMDB does not support querying
+        // multiple ids at the same time, currently
+        // so we are saving safe (server-side) data to the document
+
+        try {
           const rawMediaData = await (mediaType === MediaType.Movie
             ? TMDB.getMovieDetailsById(mediaId)
             : TMDB.getTvShowDetailsById(mediaId));
 
           const mediaData = parseMediaDetailsData(rawMediaData);
 
-          await prisma[userStateCollection].upsert({
-            where: {
-              userId_mediaId_mediaType: {
-                userId,
-                mediaId,
-                mediaType,
-              },
-            },
-            create: {
-              userId,
-              mediaId,
-              mediaType,
-              title: mediaData.title,
-              posterImageUrl: mediaData.posterImageUrl,
-              year: mediaData.year,
-              path: getPath(mediaData.id, mediaData.title, mediaData.mediaType),
-            },
-            update: {},
+          await setDoc(mediaDocRef, {
+            ...pick(
+              mediaData,
+              "id",
+              "title",
+              "mediaType",
+              "posterImageUrl",
+              "year"
+            ),
+            path: getPath(mediaData.id, mediaData.title, mediaData.mediaType),
           });
 
           res.status(201).end();
+        } catch (err) {
+          console.error(err);
+          res.status(500).json({
+            message: `There was an error adding the media to ${userStateCollection}`,
+          });
         }
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({
-          message: `There was an error ${
-            req.method === "DELETE" ? "deleting" : "adding"
-          } the media to ${userStateCollection}`,
-        });
       }
 
       break;
@@ -121,7 +120,7 @@ export async function favoritesHandler(
   res: NextApiResponse,
   session: Session | null
 ) {
-  return handler(req, res, session, "favorites");
+  return handler(req, res, session, UserStateCollection.Favorites);
 }
 
 export async function watchlistHandler(
@@ -129,5 +128,5 @@ export async function watchlistHandler(
   res: NextApiResponse,
   session: Session | null
 ) {
-  return handler(req, res, session, "watchlist");
+  return handler(req, res, session, UserStateCollection.Watchlist);
 }
