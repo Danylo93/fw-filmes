@@ -7,7 +7,12 @@ services:
     ports:
       - '3000:3000'
     environment:
-      - DATABASE_URL=postgresql://postgres:8caf0e1d74bf6f0891682a30f664b23a@89.116.31.63:5432/tmdb?schema=public
+      - DATABASE_URL=${DATABASE_URL}
+      - TMDB_APIKEY=${TMDB_APIKEY}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_ID=${GOOGLE_ID}
+      - GOOGLE_SECRET=${GOOGLE_SECRET}
+
     depends_on:
       - db
   db:
