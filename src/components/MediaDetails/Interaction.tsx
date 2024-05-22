@@ -5,7 +5,6 @@ import React from "react";
 import useSWR from "swr";
 import cn from "classnames";
 import { useSession, signIn } from "next-auth/react";
-import prisma from "@/lib/prisma";
 
 type Props = {
   mediaId: number;
@@ -21,6 +20,7 @@ const Interaction = ({
   setIsModalOpen,
 }: Props) => {
   const { data: session, status } = useSession();
+
   const { data, mutate, error } = useSWR<{
     mediaId: number;
     mediaType: string;
@@ -34,26 +34,21 @@ const Interaction = ({
   );
 
   const isLoading = (session && !data && !error) || status === "loading";
+
   const isInFavorites = data?.isInFavorites;
   const isInWatchlist = data?.isInWatchlist;
 
   const optimisticToggleItem = async (itemType: "favorites" | "watchlist") => {
-    if (!session) {
-      signIn();
-      return;
-    }
+    const optimisticData =
+      itemType === "favorites"
+        ? { ...data!, isInFavorites: !isInFavorites }
+        : { ...data!, isInWatchlist: !isInWatchlist };
 
-    const optimisticData = {
-      ...data!,
-      isInFavorites: itemType === "favorites" ? !isInFavorites : isInFavorites,
-      isInWatchlist: itemType === "watchlist" ? !isInWatchlist : isInWatchlist,
-    };
+    const request = async () => {
+      const method = (itemType === "favorites" ? isInFavorites : isInWatchlist)
+        ? "DELETE"
+        : "PUT";
 
-    const method = (itemType === "favorites" ? isInFavorites : isInWatchlist)
-      ? "DELETE"
-      : "PUT";
-
-    try {
       const response = await fetch(`/api/${itemType}`, {
         method,
         headers: {
@@ -62,18 +57,21 @@ const Interaction = ({
         body: JSON.stringify({ mediaType, mediaId }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to update user state");
-      }
+      return response.ok ? optimisticData : data!;
+    };
 
-      mutate(optimisticData, false);
-    } catch (error) {
-      console.error(error);
-      // Revert optimistic UI changes on error
-      mutate(data!, false);
+    try {
+      await mutate(request(), {
+        optimisticData,
+        rollbackOnError: true,
+        populateCache: true,
+        revalidate: false,
+      });
+    } catch (e) {
+      // fail
+      console.log(e);
     }
   };
-
 
   return (
     <div className="flex items-center gap-x-4">
