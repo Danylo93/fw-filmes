@@ -3,15 +3,15 @@
 
 * Next.js
 * TypeScript
-* Firebase
 * NextAuth
 * next-seo
 * Tailwind CSS
 * swr
+* Login Social
 
 ## Demo
 
-A [live deployment (https://fw-filmes-j8g1wxre5-agencia-fw-digital.vercel.app/movies)]('https://fw-filmes-j8g1wxre5-agencia-fw-digital.vercel.app/movies') of this app is available to try it out.
+A [live deployment ('https://fw-filmes-j8g1wxre5-agencia-fw-digital.vercel.app/movies')](https://fw-filmes-j8g1wxre5-agencia-fw-digital.vercel.app/movies) of this app is available to try it out.
  
 
 ## Instalação
@@ -36,6 +36,11 @@ yarn install
 * `yarn dev`: dev build
 * `yarn build`: production build
 * `yarn start`: start the project with optimized prod build
+
+## Docker
+
+* `docker-compose up -d`: Para Rodar o projeto
+
     
 ## License
 
