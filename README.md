@@ -11,7 +11,7 @@
 
 ## Demo
 
-A [live deployment (url)](url) of this app is available to try it out.
+A [live deployment (https://fw-filmes-j8g1wxre5-agencia-fw-digital.vercel.app/movies)]('https://fw-filmes-j8g1wxre5-agencia-fw-digital.vercel.app/movies') of this app is available to try it out.
  
 
 ## Instalação
